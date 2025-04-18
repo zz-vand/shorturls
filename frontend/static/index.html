@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор коротких ссылок</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #a74caf;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #a74caf;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .qr-code {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .qr-code img {
+            max-width: 200px;
+            height: auto;
+        }
+        .link-result {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e9f7ef;
+            border-radius: 4px;
+            word-break: break-all;
+        }
+        .tab {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab button {
+            flex: 1;
+            background-color: #ddd;
+            color: black;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+        }
+        .tab button.active {
+            background-color: #a74caf;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .copy-btn {
+            background-color: #2196F3;
+            margin-left: 10px;
+        }
+        .copy-btn:hover {
+            background-color: #0b7dda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Генератор коротких ссылок</h1>
+        
+        <div class="tab">
+            <button class="tablinks active" onclick="openTab(event, 'random')">Случайная ссылка</button>
+            <button class="tablinks" onclick="openTab(event, 'custom')">Своя ссылка</button>
+        </div>
+        
+        <div id="random" class="tab-content active">
+            <div class="form-group">
+                <label for="original-link-random">Введите оригинальную ссылку:</label>
+                <input type="text" id="original-link-random" placeholder="https://example.com">
+            </div>
+            <button onclick="generateRandomLink()">Сгенерировать</button>
+            
+            <div class="result" id="result-random" style="display: none;">
+                <h3>Результат:</h3>
+                <div class="link-result">
+                    <span id="short-link-random"></span>
+                    <button class="copy-btn" onclick="copyToClipboard('short-link-random')">Копировать</button>
+                </div>
+                <div class="qr-code">
+                    <h4>QR-код:</h4>
+                    <div id="qr-image-random"></div>
+                    <button onclick="downloadQR('qr-image-random', 'short-link-random')">Скачать QR-код</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="custom" class="tab-content">
+            <div class="form-group">
+                <label for="original-link-custom">Введите оригинальную ссылку:</label>
+                <input type="text" id="original-link-custom" placeholder="https://example.com">
+            </div>
+            <div class="form-group">
+                <label for="custom-path">Введите название:</label>
+                <input type="text" id="custom-path" placeholder="my-link">
+            </div>
+            <button onclick="generateCustomLink()">Сгенерировать</button>
+            
+            <div class="result" id="result-custom" style="display: none;">
+                <h3>Результат:</h3>
+                <div class="link-result">
+                    <span id="short-link-custom"></span>
+                    <button class="copy-btn" onclick="copyToClipboard('short-link-custom')">Копировать</button>
+                </div>
+                <div class="qr-code">
+                    <h4>QR-код:</h4>
+                    <div id="qr-image-custom"></div>
+                    <button onclick="downloadQR('qr-image-custom', 'short-link-custom')">Скачать QR-код</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openTab(evt, tabName) {
+            const tabcontent = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            
+            const tablinks = document.getElementsByClassName("tablinks");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+        
+        async function generateRandomLink() {
+            const originalLink = document.getElementById("original-link-random").value;
+            if (!originalLink) {
+                alert("Пожалуйста, введите ссылку");
+                return;
+            }
+            
+            try {
+                const response = await fetch("/api/link/random", {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ link: originalLink })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                
+                // Получаем QR-код как blob
+                const qrBlob = await response.blob();
+                const qrUrl = URL.createObjectURL(qrBlob);
+                
+                // Получаем имя ссылки из заголовка
+                const contentDisposition = response.headers.get("Content-Disposition");
+                const newLink = contentDisposition ? 
+                    contentDisposition.split("qr_")[1].split(".")[0] : 
+                    "unknown-link";
+                
+                // Отображаем результат
+                document.getElementById("short-link-random").textContent = 
+                    `http://localhost:8000/${newLink}`;
+                
+                const qrImage = document.createElement("img");
+                qrImage.src = qrUrl;
+                document.getElementById("qr-image-random").innerHTML = "";
+                document.getElementById("qr-image-random").appendChild(qrImage);
+                
+                document.getElementById("result-random").style.display = "block";
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Произошла ошибка: " + error.message);
+            }
+        }
+        
+        async function generateCustomLink() {
+            const originalLink = document.getElementById("original-link-custom").value;
+            const customPath = document.getElementById("custom-path").value;
+            
+            if (!originalLink || !customPath) {
+                alert("Пожалуйста, заполните все поля");
+                return;
+            }
+            
+            try {
+                const response = await fetch("/api/link/created_by_user", {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ 
+                        link: originalLink,
+                        userword: customPath 
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                
+                // Получаем QR-код как blob
+                const qrBlob = await response.blob();
+                const qrUrl = URL.createObjectURL(qrBlob);
+                
+                // Получаем полное имя ссылки из заголовка
+                const contentDisposition = response.headers.get("Content-Disposition");
+                const newLink = contentDisposition ? 
+                    contentDisposition.split("qr_")[1].split(".")[0] : 
+                    customPath + "-generated";
+                
+                // Отображаем результат
+                document.getElementById("short-link-custom").textContent = 
+                    `http://localhost:8000/${newLink}`;
+                
+                const qrImage = document.createElement("img");
+                qrImage.src = qrUrl;
+                document.getElementById("qr-image-custom").innerHTML = "";
+                document.getElementById("qr-image-custom").appendChild(qrImage);
+                
+                document.getElementById("result-custom").style.display = "block";
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Произошла ошибка: " + error.message);
+            }
+        }
+        
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Ссылка скопирована в буфер обмена!");
+            }).catch(err => {
+                console.error('Ошибка копирования: ', err);
+            });
+        }
+        
+        function downloadQR(qrElementId, linkElementId) {
+            const qrImg = document.getElementById(qrElementId).querySelector('img');
+            const linkText = document.getElementById(linkElementId).textContent;
+            const fileName = linkText.split('/').pop() || 'qr-code';
+            
+            const link = document.createElement('a');
+            link.href = qrImg.src;
+            link.download = `${fileName}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

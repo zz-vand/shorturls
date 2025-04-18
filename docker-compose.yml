@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    environment:
+      - DATABASE_URL=postgresql://user_url:user_url@db:5432/shorturls
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=user_url
+      - POSTGRES_PASSWORD=user_url
+      - POSTGRES_DB=shorturls
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_url -d shorturls"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -1,0 +1,8 @@
+fastapi>=0.68.0
+uvicorn>=0.15.0
+sqlalchemy>=1.4.0
+asyncpg
+numpy
+psycopg[binary]
+qrcode[pil]>=7.0
+python-multipart>=0.0.5
